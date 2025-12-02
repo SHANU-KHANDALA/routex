@@ -10,27 +10,19 @@
 		</data>
 		<key>flutter_assets/AssetManifest.bin</key>
 		<data>
-		BBqsP+fl0h6lY8aW2qPtZaiJ+cw=
+		yTom1oGlllR8g1NlPoRL8aWzHTo=
 		</data>
 		<key>flutter_assets/FontManifest.json</key>
 		<data>
-		vKJkVIcw+LGHFnKJGwrQwCREv68=
+		Y+lL787YPtpJqxm9pSMXagwNxcE=
 		</data>
 		<key>flutter_assets/NOTICES.Z</key>
 		<data>
-		NaFcpb5GImmolnAPMn2wyvfxD5A=
+		D+DCEy7ZQ52gjLfN4wvd6SFgXUE=
 		</data>
 		<key>flutter_assets/NativeAssetsManifest.json</key>
 		<data>
 		re4p7E8rPLLsN+wzaPN/+AVpXTY=
-		</data>
-		<key>flutter_assets/assets/.DS_Store</key>
-		<data>
-		3y++sUAKzaCQmjLBz2v0kvESHgc=
-		</data>
-		<key>flutter_assets/assets/routex-logo.jpeg</key>
-		<data>
-		fMUpn8GnYvBwjqT7Y4z+acWJqBY=
 		</data>
 		<key>flutter_assets/assets/routex-logo.jpg</key>
 		<data>
@@ -46,7 +38,7 @@
 		</data>
 		<key>flutter_assets/kernel_blob.bin</key>
 		<data>
-		py48BS7BJcOhkBixokyKIPYbRIw=
+		F081n8VkOdbnunKy4+fI/jUhpB0=
 		</data>
 		<key>flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf</key>
 		<data>
@@ -59,6 +51,18 @@
 		<key>flutter_assets/packages/fluttertoast/assets/toastify.js</key>
 		<data>
 		v5LMft1C/Ps/+tw6D+zco3p3Urk=
+		</data>
+		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Brands-Regular-400.otf</key>
+		<data>
+		YBl4gce02PwIDieMs7VDVihjZUg=
+		</data>
+		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Free-Regular-400.otf</key>
+		<data>
+		TVGKUMf13tdSMq2lRZRetgiJ0Bc=
+		</data>
+		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Free-Solid-900.otf</key>
+		<data>
+		wXi5Pi49/qOM6ShFisxNZDd2qeY=
 		</data>
 		<key>flutter_assets/shaders/ink_sparkle.frag</key>
 		<data>
@@ -79,21 +83,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			chgI2UqQ8GMkkoExEevnJfJZKUiHsnIWJm2TvBVMnGE=
+			F4i7wwaj2wkMwvWQ40uoEdZjUquF5ahHv7IH1GnSa0Q=
 			</data>
 		</dict>
 		<key>flutter_assets/FontManifest.json</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zX4DZFvESy3Ue3y2JvUcTsv1Whl6t3JBYotHrBZfviE=
+			EPTAI8b9dWmvhdaXmBt+e8ZOoDVmqaMyskyHJDBojlE=
 			</data>
 		</dict>
 		<key>flutter_assets/NOTICES.Z</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			FVtsdn3S5Wb/9UCNg5WbGXZb3eILdMjWMf2Dg3A0Fvg=
+			rDFCytpHP8FmqQYT4Mk03bpCXl7LObBcUI7YSC7pFNc=
 			</data>
 		</dict>
 		<key>flutter_assets/NativeAssetsManifest.json</key>
@@ -101,13 +105,6 @@
 			<key>hash2</key>
 			<data>
 			lUijHkoEgTXB2U+Rkyi/tirix7s8q5ZVfHlB2ql3dss=
-			</data>
-		</dict>
-		<key>flutter_assets/assets/routex-logo.jpeg</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			1/p8gSBGZcLhtBYIALxbcN/KTJ8v0Yl6gWP5uKiHF38=
 			</data>
 		</dict>
 		<key>flutter_assets/assets/routex-logo.jpg</key>
@@ -135,7 +132,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			htxRs/AqRrxzN5PGxb5j09XIgGKVqIi+IDAN9m9i4CM=
+			Xv23gxiSGyT6lKpWFVbnIbdhmM8PPaTnlIzdx6sRVqw=
 			</data>
 		</dict>
 		<key>flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf</key>
@@ -157,6 +154,27 @@
 			<key>hash2</key>
 			<data>
 			CRyacJlKIATuArBPER1Aq+QMB7BmhWOZ9YxYcELsKZA=
+			</data>
+		</dict>
+		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Brands-Regular-400.otf</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			vS+oQL9rcmg26QBA7ZfMGPJQFxwbI7aEC5SMIvbbP3U=
+			</data>
+		</dict>
+		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Free-Regular-400.otf</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			zkg1HfpKDU0z9F8dTPIAYAwkyBgLKeYneolkToByFR8=
+			</data>
+		</dict>
+		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Free-Solid-900.otf</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			Mfimk/T2qj2UXxKbEmqPgIxFTsrVoNueSgYKp9HpCk0=
 			</data>
 		</dict>
 		<key>flutter_assets/shaders/ink_sparkle.frag</key>

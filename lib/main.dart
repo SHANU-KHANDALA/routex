@@ -14,9 +14,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'RouteX',
-      initialRoute: "/", // Start at AuthPage
+      initialRoute: "/",
       routes: {
-        "/": (context) => const AuthPage(),
+        "/": (context) => const AuthPage(), // FIXED
         "/dashboard": (context) => const DashboardPage(),
       },
     );
