@@ -18,12 +18,6 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     tabController = TabController(length: 2, vsync: this);
   }
 
-  @override
-  void dispose() {
-    tabController.dispose();
-    super.dispose();
-  }
-
   void showToast(String msg) {
     Fluttertoast.showToast(msg: msg);
   }
@@ -32,9 +26,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     setState(() => isLoading = true);
 
     await Future.delayed(const Duration(seconds: 1));
+
     showToast("Welcome back!");
 
-    if (!mounted) return;
     Navigator.pushNamed(context, "/dashboard");
 
     setState(() => isLoading = false);
@@ -44,9 +38,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     setState(() => isLoading = true);
 
     await Future.delayed(const Duration(seconds: 1));
+
     showToast("Account created successfully!");
 
-    if (!mounted) return;
     Navigator.pushNamed(context, "/dashboard");
 
     setState(() => isLoading = false);
@@ -69,9 +63,26 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           child: SizedBox(
             width: 380,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Back Button
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.arrow_back, size: 18),
+                      SizedBox(width: 6),
+                      Text("Back to Home"),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // App Logo
                 Image.asset("assets/routex-logo.jpg", height: 70),
+
                 const SizedBox(height: 12),
 
                 const Text(
@@ -84,6 +95,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
                 const SizedBox(height: 20),
 
+                // Tabs
                 TabBar(
                   controller: tabController,
                   labelColor: Colors.blue,
@@ -96,11 +108,17 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
                 const SizedBox(height: 20),
 
-                SizedBox(
-                  height: 420,
+                // Tab View
+                Expanded(
                   child: TabBarView(
                     controller: tabController,
-                    children: [loginCard(), signupCard()],
+                    children: [
+                      // LOGIN TAB
+                      loginCard(),
+
+                      // SIGNUP TAB
+                      signupCard(),
+                    ],
                   ),
                 ),
 
@@ -135,6 +153,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
             const SizedBox(height: 20),
 
             TextField(decoration: inputDecoration("Email", Icons.email)),
+
             const SizedBox(height: 16),
 
             TextField(
@@ -143,6 +162,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
             ),
 
             const SizedBox(height: 10),
+
             TextButton(onPressed: () {}, child: const Text("Forgot Password?")),
 
             const Spacer(),
