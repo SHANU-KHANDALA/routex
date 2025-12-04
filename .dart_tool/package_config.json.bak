@@ -416,7 +416,7 @@
       "languageVersion": "3.3"
     },
     {
-      "name": "routex",
+      "name": "routex_testing",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.10"

@@ -1,6 +1,6 @@
 {
-    "name": "routex",
-    "short_name": "routex",
+    "name": "routex_testing",
+    "short_name": "routex_testing",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
