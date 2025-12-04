@@ -6,7 +6,7 @@
 #import <Foundation/Foundation.h>
 #import "PermissionStrategy.h"
 
-#if PERMISSION_LOCATION || PERMISSION_LOCATION_WHENINUSE || PERMISSION_LOCATION_ALWAYS
+#if PERMISSION_LOCATION
 
 #import <CoreLocation/CoreLocation.h>
 

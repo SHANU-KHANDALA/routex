@@ -8,17 +8,9 @@
 		<data>
 		hSkl0b3zmpyg1kIaXinvAUWwTdE=
 		</data>
-		<key>Headers/AssistantPermissionStrategy.h</key>
-		<data>
-		rfyiTSc3DWmT/IqegGQgKuWnDmk=
-		</data>
 		<key>Headers/AudioVideoPermissionStrategy.h</key>
 		<data>
 		k1XMk5D67/BlFMHryiDNCV87Nz4=
-		</data>
-		<key>Headers/BackgroundRefreshStrategy.h</key>
-		<data>
-		Zr7z2f6i1590PAAxns69n8gXkOM=
 		</data>
 		<key>Headers/BluetoothPermissionStrategy.h</key>
 		<data>
@@ -38,11 +30,11 @@
 		</data>
 		<key>Headers/EventPermissionStrategy.h</key>
 		<data>
-		8TQLrJJiXENXA0pzyX0MAehoib0=
+		6S4P4ldKmiMxbmMaPvbEDaUG5eE=
 		</data>
 		<key>Headers/LocationPermissionStrategy.h</key>
 		<data>
-		4HZBgjY+jnz+Kef7iwJteHsOWA8=
+		RtG86R5U2hwMCzLq3p3NVbrfoks=
 		</data>
 		<key>Headers/MediaLibraryPermissionStrategy.h</key>
 		<data>
@@ -54,7 +46,7 @@
 		</data>
 		<key>Headers/PermissionHandlerEnums.h</key>
 		<data>
-		Zk+h1C8RKll80Wp3k5TEdY45wjk=
+		xB+I7ZeXdv+WFt/pxSzAbrzCkz0=
 		</data>
 		<key>Headers/PermissionHandlerPlugin.h</key>
 		<data>
@@ -62,11 +54,11 @@
 		</data>
 		<key>Headers/PermissionManager.h</key>
 		<data>
-		G4OvECvMo3LuS67YcSCDxvDGi4s=
+		DltdBWKpIGijCdtCX5nY2TI1KpM=
 		</data>
 		<key>Headers/PermissionStrategy.h</key>
 		<data>
-		WIUX3JCm9FUEJMoS1xdJTAxa/ik=
+		KbVsI6fDAfXQ47ZdSLPmSdCKXeI=
 		</data>
 		<key>Headers/PhonePermissionStrategy.h</key>
 		<data>
@@ -94,11 +86,11 @@
 		</data>
 		<key>Headers/permission_handler_apple-umbrella.h</key>
 		<data>
-		ZBe03XoX9g8bhj5mSSZkPM+iHoo=
+		gx1regDtlOhD3K6AdSkZ0BsYbW0=
 		</data>
 		<key>Info.plist</key>
 		<data>
-		q2xuK4YHCu6xJFJ6L7erMXg9rh0=
+		yUnjI4Tooxy/gX7ZuOfLID/D4Cg=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
@@ -114,25 +106,11 @@
 			FDiqFCrpcVe8BwNe0IVGdgkfxR/Fr4jW0igw7Rzw4w0=
 			</data>
 		</dict>
-		<key>Headers/AssistantPermissionStrategy.h</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			YB605BVhTrNspfKznnWzz8+AY1xPwdziRLiqrds6sY0=
-			</data>
-		</dict>
 		<key>Headers/AudioVideoPermissionStrategy.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			FEF02mBdpnc7Dr7Qs0FsK1DsPcBh/Dd2BbCAuTsZzjY=
-			</data>
-		</dict>
-		<key>Headers/BackgroundRefreshStrategy.h</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			E7ZqYfvF3pn8TJ9X/cK1zMaZiWAcwQdOYruCpnV2g9k=
 			</data>
 		</dict>
 		<key>Headers/BluetoothPermissionStrategy.h</key>
@@ -167,14 +145,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			RiIa+gGIv0FHQMMH403dbP13+CFGZakzWcX4vURlN14=
+			Zs4StRh2JrTsiJ7bY5MQGx1xFaD4/FoOuZ6VOal51z4=
 			</data>
 		</dict>
 		<key>Headers/LocationPermissionStrategy.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			myNRYAK+ykYvBjMj53oJ1wIJRR4xOUP7TFQEwJZmHPc=
+			k4DVIf0wVTvgSD1xGJO/2TqRNz2g4GAWfxjAPZYa+GE=
 			</data>
 		</dict>
 		<key>Headers/MediaLibraryPermissionStrategy.h</key>
@@ -195,7 +173,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			Vqt68tV7QoCIjCQ1ZnsclVd0Ia2kuMlpN0onYS+9vWg=
+			trhUUcjS3kY33rnWUsBZWjwrfjGYx2fC3+h6F5QZ5PM=
 			</data>
 		</dict>
 		<key>Headers/PermissionHandlerPlugin.h</key>
@@ -209,14 +187,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			YJg3Mo/e8dtO2wQh1bVRI8kGaM3vhOVfY1KrAzJOmdA=
+			dFP/neFWxLHtq4U+iM5nvmDvVqrTCrGP8pyzlyo7ck8=
 			</data>
 		</dict>
 		<key>Headers/PermissionStrategy.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QZiNFqZAQ8mgm5sA8WnvJpAJ+xmTd6DhdG+T34t2oXg=
+			/E5wGBz+JGamPWt3Uj0MNJHYGAB787Q7+FotUfFvcbQ=
 			</data>
 		</dict>
 		<key>Headers/PhonePermissionStrategy.h</key>
@@ -265,7 +243,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			A/h7t4BddfD+RIO3I6s6K0V/45lASGvPWeRVxYXGEF0=
+			G4X3/L4ud8W0PbS+gVOSWs2hir9vVfY2xYQeJFS4diI=
 			</data>
 		</dict>
 		<key>Modules/module.modulemap</key>

@@ -17,6 +17,8 @@
                  while the Flutter UI initializes. After that, this theme continues
                  to determine the Window background behind the Flutter UI. -->
             <meta-data
+                android:name="com.google.android.geo.API_KEY"
+                android:value="YOUR_ANDROID_API_KEY"/>
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
