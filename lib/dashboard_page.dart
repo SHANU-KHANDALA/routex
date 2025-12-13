@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -12,66 +14,82 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage>
-    with SingleTickerProviderStateMixin {
-  // Map controller
+class _DashboardPageState extends State<DashboardPage> {
+  // --- CONFIGURATION ---
+  static const String _googleApiKey = "AIzaSyA2Uh9gd06RbRVk3sOC2UrIir5Lp1SFWgw";
+
   final Completer<GoogleMapController> _mapController = Completer();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Sidebar toggle
-  bool _showSidebar = false;
+  // Sidebar & Camera State
+  bool _showLeftSidebar = false;
+  bool _isAutoCamera = true;
 
-  // Demo stops (matching your earlier data)
+  // --- EDIT YOUR STOPS HERE (EVERYTHING ELSE WILL SYNC AUTOMATICALLY) ---
   final List<LatLng> _stopLocations = [
-    const LatLng(12.9716, 77.5946), // Central Station (example)
-    const LatLng(12.9728, 77.5958), // Park Avenue (next)
-    const LatLng(12.9740, 77.5971), // School Campus
+    const LatLng(22.818023, 75.943507),
+    const LatLng(22.817724, 75.938138),
+    const LatLng(22.754549, 75.934626),
+    const LatLng(22.754528, 75.930608),
+    const LatLng(22.745208, 75.929004),
+    const LatLng(22.749603, 75.903561),
+    const LatLng(22.750783, 75.895587),
+    const LatLng(22.755260, 75.878421),
   ];
 
   final List<Map<String, dynamic>> _stops = [
-    {
-      "id": "1",
-      "name": "Central Station",
-      "scheduledTime": "7:30 AM",
-      "eta": 15,
-      "distance": 3.2,
-    },
-    {
-      "id": "2",
-      "name": "Park Avenue",
-      "scheduledTime": "7:35 AM",
-      "eta": 8,
-      "distance": 1.8,
-    },
-    {
-      "id": "3",
-      "name": "School Campus",
-      "scheduledTime": "7:40 AM",
-      "eta": 13,
-      "distance": 2.5,
-    },
+    {"id": "1", "name": "Acropolis", "time": "6:10 AM"},
+    {"id": "1", "name": "bypaas Road", "time": "6:05 AM"},
+    {"id": "1", "name": "Hare Krishna Vihar", "time": "6:30 AM"},
+    {"id": "1", "name": "Hare Krishna Vihar", "time": "6:30 AM"},
+    {"id": "1", "name": "Knight Square", "time": "6:30 AM"},
+    {"id": "2", "name": "Radisson Blu", "time": "6:45 AM"},
+    {"id": "2", "name": "vijay nagr", "time": "6:55 AM"},
+    {"id": "3", "name": "Bapat Square", "time": "7:15 AM"},
   ];
+  // ---------------------------------------------------------------------
 
-  // Markers & polylines
+  // Dynamic Data
+  String _currentDistance = "0 km";
+  String _currentDuration = "0 min";
+  String _nextStopName = "Loading...";
+  String _debugStatus = "";
+
+  // Map Elements
   final Map<MarkerId, Marker> _markers = {};
   final Map<PolylineId, Polyline> _polylines = {};
 
-  // Demo bus location (moving)
-  LatLng _busLocation = const LatLng(12.9719, 77.5950);
+  // Simulation State
+  // We use 'late' so we can set them based on the list in initState
+  late LatLng _busLocation;
+  late CameraPosition _initialCamera;
 
-  // Animation timer for demo bus movement
   Timer? _busTimer;
-  int _busStep = 0;
-
-  // initial camera position (center)
-  static const CameraPosition _initialCamera = CameraPosition(
-    target: LatLng(12.9716, 77.5946),
-    zoom: 14.0,
-  );
+  int _currentRouteIndex = 0;
+  double _fractionTraveled = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _initMarkersAndPolylines();
+
+    // --- SMART SETUP: Auto-set start to the first stop ---
+    if (_stopLocations.isNotEmpty) {
+      _busLocation = _stopLocations[0];
+      _initialCamera = CameraPosition(target: _stopLocations[0], zoom: 14.5);
+    } else {
+      // Fallback if list is empty
+      _busLocation = const LatLng(0, 0);
+      _initialCamera = const CameraPosition(target: LatLng(0, 0), zoom: 1);
+    }
+
+    _initStaticMarkers();
+    _updateBusMarker();
+
+    if (_stops.length > 1) {
+      _nextStopName = _stops[1]['name'];
+      _getDirections(_stopLocations[0], _stopLocations[1]);
+    }
+
     _startBusSimulation();
   }
 
@@ -81,503 +99,464 @@ class _DashboardPageState extends State<DashboardPage>
     super.dispose();
   }
 
-  // Initialize demo markers & a sample polyline between bus and next stop
-  void _initMarkersAndPolylines() {
-    // Stops markers
-    for (var i = 0; i < _stopLocations.length; i++) {
-      final id = MarkerId('stop_$i');
-      final stop = _stops[i];
-      final marker = Marker(
-        markerId: id,
-        position: _stopLocations[i],
-        infoWindow: InfoWindow(
-          title: stop['name'],
-          snippet: stop['scheduledTime'],
-        ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-      );
-      _markers[id] = marker;
+  // --- API LOGIC ---
+  Future<void> _getDirections(LatLng start, LatLng dest) async {
+    if (_googleApiKey.contains("API_KEY")) {
+      setState(() {
+        _debugStatus = "MISSING API KEY";
+        _updatePolylineStraight(start, dest);
+      });
+      return;
     }
 
-    // Bus marker (dynamic, add first time)
-    final busId = const MarkerId('bus_marker');
-    _markers[busId] = Marker(
-      markerId: busId,
-      position: _busLocation,
-      infoWindow: const InfoWindow(title: "Bus #247"),
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-    );
-
-    // Initial polyline demo (between bus and next stop)
-    final polyId = const PolylineId('route_poly');
-    _polylines[polyId] = Polyline(
-      polylineId: polyId,
-      width: 4,
-      color: Colors.blueAccent,
-      points: [_busLocation, _stopLocations[1]],
-    );
-  }
-
-  // Demo bus movement: moves bus slightly along a small path
-  void _startBusSimulation() {
-    const duration = Duration(seconds: 2);
-    _busTimer = Timer.periodic(duration, (_) async {
-      // Move bus in a small loop between points
-      _busStep = (_busStep + 1) % _stopLocations.length;
-      final target = _stopLocations[_busStep];
-      // simple lerp for demo
-      _busLocation = LatLng(
-        (_busLocation.latitude + target.latitude) / 2,
-        (_busLocation.longitude + target.longitude) / 2,
-      );
-
-      _updateBusMarker();
-      _updatePolylineToNextStop();
-
-      // optionally animate camera to bus (comment out if undesired)
-      final controller = await _mapController.future;
-      controller.animateCamera(CameraUpdate.newLatLng(_busLocation));
-      setState(() {});
-    });
-  }
-
-  // Replace bus marker with updated position
-  void _updateBusMarker() {
-    final id = const MarkerId('bus_marker');
-    final marker = Marker(
-      markerId: id,
-      position: _busLocation,
-      infoWindow: const InfoWindow(title: "Bus #247"),
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-    );
-    setState(() {
-      _markers[id] = marker;
-    });
-  }
-
-  // Update polyline between bus and next stop (next stop index = 1 in demo)
-  void _updatePolylineToNextStop() {
-    final polyId = const PolylineId('route_poly');
-    final nextStop = _stopLocations[1];
-    final polyline = Polyline(
-      polylineId: polyId,
-      width: 4,
-      color: Colors.blueAccent,
-      points: [_busLocation, nextStop],
-    );
-    setState(() {
-      _polylines[polyId] = polyline;
-    });
-  }
-
-  // Ask for location permission and get current device location
-  Future<Position?> _determinePosition() async {
-    // request permission via permission_handler for web-friendly approach
-    final status = await Permission.location.request();
-    if (status != PermissionStatus.granted) {
-      // permission denied
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission denied')),
-        );
-      }
-      return null;
-    }
+    String url =
+        "https://maps.googleapis.com/maps/api/directions/json?origin=${start.latitude},${start.longitude}&destination=${dest.latitude},${dest.longitude}&mode=driving&key=$_googleApiKey";
 
     try {
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not get location: $e')));
+      final response = await http.get(Uri.parse(url));
+      final json = jsonDecode(response.body);
+
+      if (json['status'] == 'OK') {
+        final pointsString = json['routes'][0]['overview_polyline']['points'];
+        final PolylinePoints polylinePoints = PolylinePoints();
+        List<PointLatLng> result = polylinePoints.decodePolyline(pointsString);
+
+        List<LatLng> polylineCoordinates = result
+            .map((point) => LatLng(point.latitude, point.longitude))
+            .toList();
+
+        final leg = json['routes'][0]['legs'][0];
+
+        setState(() {
+          _debugStatus = "";
+          _currentDistance = leg['distance']['text'];
+          _currentDuration = leg['duration']['text'];
+
+          final polyId = const PolylineId('route_poly');
+          _polylines[polyId] = Polyline(
+            polylineId: polyId,
+            width: 5,
+            color: Colors.blueAccent,
+            points: polylineCoordinates,
+          );
+        });
+      } else {
+        setState(() {
+          _debugStatus = "API ERROR: ${json['status']}";
+          _updatePolylineStraight(start, dest);
+        });
       }
-      return null;
+    } catch (e) {
+      setState(() => _debugStatus = "Network Error");
     }
   }
 
-  // Move camera to device location
-  Future<void> _goToMyLocation() async {
-    final pos = await _determinePosition();
-    if (pos == null) return;
-    final controller = await _mapController.future;
-    controller.animateCamera(
-      CameraUpdate.newLatLngZoom(LatLng(pos.latitude, pos.longitude), 16),
-    );
-  }
-
-  // Toggle sidebar
-  void _toggleSidebar() {
+  void _updatePolylineStraight(LatLng start, LatLng dest) {
+    final polyId = const PolylineId('route_poly');
     setState(() {
-      _showSidebar = !_showSidebar;
+      _polylines[polyId] = Polyline(
+        polylineId: polyId,
+        width: 4,
+        color: Colors.grey,
+        points: [start, dest],
+      );
     });
   }
 
-  // Build the left sidebar content (scrollable)
-  Widget _buildSidebarContent() {
+  // --- SIMULATION ---
+  void _startBusSimulation() {
+    const fps = Duration(milliseconds: 500);
+    _busTimer = Timer.periodic(fps, (_) async {
+      if (_currentRouteIndex >= _stopLocations.length - 1) {
+        _currentRouteIndex = 0;
+        _fractionTraveled = 0.0;
+        _getDirections(_stopLocations[0], _stopLocations[1]);
+        setState(() => _nextStopName = _stops[1]['name']);
+      }
+
+      final start = _stopLocations[_currentRouteIndex];
+      final end = _stopLocations[_currentRouteIndex + 1];
+
+      _fractionTraveled += 0.02;
+
+      if (_fractionTraveled >= 1.0) {
+        _fractionTraveled = 0.0;
+        _currentRouteIndex++;
+
+        if (_currentRouteIndex < _stopLocations.length - 1) {
+          final nextIndex = _currentRouteIndex + 1;
+          _getDirections(
+            _stopLocations[_currentRouteIndex],
+            _stopLocations[nextIndex],
+          );
+          setState(() => _nextStopName = _stops[nextIndex]['name']);
+        }
+      }
+
+      final lat =
+          start.latitude + (end.latitude - start.latitude) * _fractionTraveled;
+      final lng =
+          start.longitude +
+          (end.longitude - start.longitude) * _fractionTraveled;
+      _busLocation = LatLng(lat, lng);
+
+      _updateBusMarker();
+
+      if (_isAutoCamera && _mapController.isCompleted) {
+        final controller = await _mapController.future;
+        controller.animateCamera(CameraUpdate.newLatLng(_busLocation));
+      }
+    });
+  }
+
+  void _initStaticMarkers() {
+    for (var i = 0; i < _stopLocations.length; i++) {
+      final id = MarkerId('stop_$i');
+      _markers[id] = Marker(
+        markerId: id,
+        position: _stopLocations[i],
+        infoWindow: InfoWindow(title: _stops[i]['name']),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+      );
+    }
+  }
+
+  void _updateBusMarker() {
+    setState(() {
+      final busId = const MarkerId('bus_marker');
+      _markers[busId] = Marker(
+        markerId: busId,
+        position: _busLocation,
+        infoWindow: const InfoWindow(title: "Bus #247"),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+        zIndex: 2,
+      );
+    });
+  }
+
+  Future<void> _goToMyLocation() async {
+    final status = await Permission.location.request();
+    if (status != PermissionStatus.granted) return;
+    try {
+      final pos = await Geolocator.getCurrentPosition();
+      if (!_mapController.isCompleted) return;
+
+      setState(() => _isAutoCamera = false);
+
+      final controller = await _mapController.future;
+      controller.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng(pos.latitude, pos.longitude), 16),
+      );
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  // --- UI BUILDERS ---
+
+  Widget _buildRightProfileSidebar() {
+    return Drawer(
+      width: 280,
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: const BoxDecoration(color: Color(0xFF1E3A8A)),
+            accountName: const Text(
+              "John Doe",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            accountEmail: const Text("driver.john@routex.com"),
+            currentAccountPicture: const CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(
+                "JD",
+                style: TextStyle(fontSize: 20, color: Color(0xFF1E3A8A)),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text("Log Out", style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeftSidebarContent() {
     return SizedBox(
       width: 320,
-      child: SingleChildScrollView(
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    Container(
-                      height: 54,
-                      width: 54,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E3A8A),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+      child: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E3A8A),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Bus #247",
-                          style: GoogleFonts.montserrat(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          "Route: Campus Express",
-                          style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // ETA card
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      colors: [Colors.blue.shade50, Colors.blue.shade100],
+                    child: const Icon(
+                      Icons.directions_bus,
+                      color: Colors.white,
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Next Stop",
-                            style: GoogleFonts.montserrat(
-                              color: Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Park Avenue",
-                            style: GoogleFonts.montserrat(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        "Bus #247",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
-                      Column(
-                        children: [
-                          const Icon(Icons.timer, color: Colors.blue),
-                          const SizedBox(height: 4),
-                          Text(
-                            "8 min",
-                            style: GoogleFonts.montserrat(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        "Campus Express",
+                        style: TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
+            ),
+            const SizedBox(height: 20),
 
-              const SizedBox(height: 12),
-
-              // Stops list
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  "Route Stops",
-                  style: GoogleFonts.montserrat(fontWeight: FontWeight.w700),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-              const SizedBox(height: 8),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: Column(
-                  children: _stops.map((s) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  s['name'],
-                                  style: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "${s['scheduledTime']} • ${s['eta']} min",
-                                  style: GoogleFonts.montserrat(
-                                    color: Colors.black54,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "${s['distance']} km",
-                            style: GoogleFonts.montserrat(),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Action buttons
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          // Example: call driver - hook your phone dialer here
-                        },
-                        icon: const Icon(Icons.phone),
-                        label: const Text("Call Driver"),
-                      ),
+                    const Text(
+                      "Current Leg:",
+                      style: TextStyle(color: Colors.black87),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          // Report issue action
-                        },
-                        icon: const Icon(Icons.report_problem),
-                        label: const Text("Report Issue"),
+                    Text(
+                      _currentDistance,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ],
                 ),
               ),
+            ),
 
-              const SizedBox(height: 24),
-            ],
-          ),
+            const Divider(height: 30),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _stops.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    leading: const Icon(Icons.place, color: Colors.redAccent),
+                    title: Text(_stops[index]['name']),
+                    subtitle: Text(_stops[index]['time']),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // Main build
   @override
   Widget build(BuildContext context) {
-    final map = GoogleMap(
-      mapType: MapType.normal,
-      myLocationEnabled: false,
-      myLocationButtonEnabled: false,
-      initialCameraPosition: _initialCamera,
-      markers: Set<Marker>.of(_markers.values),
-      polylines: Set<Polyline>.of(_polylines.values),
-      onMapCreated: (GoogleMapController controller) {
-        if (!_mapController.isCompleted) _mapController.complete(controller);
-      },
-    );
-
     return Scaffold(
+      key: _scaffoldKey,
+      endDrawer: _buildRightProfileSidebar(),
       appBar: AppBar(
-        title: const Text('RouteX Dashboard'),
+        automaticallyImplyLeading: false,
+        title: const Text('RouteX'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              // assume sign out handled elsewhere
-              Navigator.pushReplacementNamed(context, '/');
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: InkWell(
+              onTap: () => _scaffoldKey.currentState!.openEndDrawer(),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey.shade200,
+                child: const Icon(Icons.person, color: Color(0xFF1E3A8A)),
+              ),
+            ),
           ),
         ],
       ),
       body: Stack(
         children: [
-          // Full-screen map
-          Positioned.fill(child: map),
+          Positioned.fill(
+            child: Listener(
+              onPointerDown: (_) {
+                setState(() => _isAutoCamera = false);
+              },
+              child: GoogleMap(
+                mapType: MapType.normal,
+                myLocationEnabled: false,
+                myLocationButtonEnabled: false,
+                initialCameraPosition: _initialCamera,
+                markers: Set<Marker>.of(_markers.values),
+                polylines: Set<Polyline>.of(_polylines.values),
+                onMapCreated: (c) {
+                  if (!_mapController.isCompleted) _mapController.complete(c);
+                },
+              ),
+            ),
+          ),
 
-          // Search bar + small button under it to toggle sidebar
+          if (_debugStatus.isNotEmpty)
+            Positioned(
+              top: 80,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  color: Colors.redAccent,
+                  child: Text(
+                    _debugStatus,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
           Positioned(
             top: 12,
             left: 12,
             right: 12,
-            child: Column(
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 48,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black26, blurRadius: 6),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.search, color: Colors.black54),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: 'Search address or stop',
-                                ),
-                                onSubmitted: (q) {
-                                  // implement search later
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
+                Expanded(
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 4),
+                      ],
+                    ),
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        hintText: "Search Stop...",
+                        border: InputBorder.none,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    // Small button that toggles the sidebar (and also the "open page" action)
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                      ),
-                      onPressed: _toggleSidebar,
-                      child: const Icon(Icons.menu),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () =>
+                      setState(() => _showLeftSidebar = !_showLeftSidebar),
+                  child: Container(
+                    height: 48,
+                    width: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 4),
+                      ],
                     ),
-                  ],
+                    child: const Icon(Icons.menu),
+                  ),
                 ),
               ],
             ),
           ),
 
-          // Animated sidebar sliding from left
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            top: 0,
-            bottom: 0,
-            left: _showSidebar ? 0 : -340, // fully hidden when -340
-            width: 320,
-            child: SafeArea(
-              child: Material(elevation: 12, child: _buildSidebarContent()),
-            ),
-          ),
-
-          // Bottom floating bus status box (fixed above map)
           Positioned(
             left: 16,
             right: 16,
             bottom: 20,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 12)],
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 10),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
-                    height: 48,
-                    width: 48,
-                    decoration: BoxDecoration(
+                    height: 50,
+                    width: 50,
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.orange.shade400,
-                          Colors.deepOrange.shade400,
-                        ],
-                      ),
+                      color: Colors.orangeAccent,
                     ),
-                    child: const Center(
-                      child: Icon(Icons.directions_bus, color: Colors.white),
+                    child: const Icon(
+                      Icons.directions_bus,
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          "Bus #247 • On Route",
-                          style: GoogleFonts.montserrat(
-                            fontWeight: FontWeight.w700,
+                        const Text(
+                          "NEXT STOP",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 2),
+                        Text(
+                          _nextStopName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Color(0xFF1E3A8A),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
-                            Text(
-                              "Speed: 45 km/h",
-                              style: GoogleFonts.montserrat(
-                                color: Colors.black54,
-                                fontSize: 12,
-                              ),
+                            const Icon(
+                              Icons.near_me,
+                              size: 14,
+                              color: Colors.blue,
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 4),
                             Text(
-                              "Distance: 1.8 km",
-                              style: GoogleFonts.montserrat(
-                                color: Colors.black54,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              "ETA: 8 min",
-                              style: GoogleFonts.montserrat(
-                                color: Colors.blue.shade700,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                              _currentDistance,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -585,36 +564,59 @@ class _DashboardPageState extends State<DashboardPage>
                       ],
                     ),
                   ),
-                  ElevatedButton(
+                  FloatingActionButton.small(
+                    heroTag: "recenter_btn",
+                    backgroundColor: _isAutoCamera
+                        ? Colors.blue
+                        : Colors.grey.shade400,
+                    child: const Icon(Icons.center_focus_strong),
                     onPressed: () {
-                      // small button to center map on bus location
-                      _centerMapOnBus();
+                      setState(() => _isAutoCamera = true);
+                      _mapController.future.then(
+                        (c) => c.animateCamera(
+                          CameraUpdate.newLatLng(_busLocation),
+                        ),
+                      );
                     },
-                    child: const Icon(Icons.location_searching),
                   ),
                 ],
               ),
             ),
           ),
 
-          // My location Floating action button (small)
           Positioned(
             right: 16,
             bottom: 100,
             child: FloatingActionButton(
+              heroTag: "mylocation_btn",
               mini: true,
               onPressed: _goToMyLocation,
               child: const Icon(Icons.my_location),
             ),
           ),
+
+          if (_showLeftSidebar)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showLeftSidebar = false;
+                  });
+                },
+                child: Container(color: Colors.black12),
+              ),
+            ),
+
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            left: _showLeftSidebar ? 0 : -320,
+            top: 0,
+            bottom: 0,
+            width: 320,
+            child: Material(elevation: 8, child: _buildLeftSidebarContent()),
+          ),
         ],
       ),
     );
-  }
-
-  // Center map on bus marker
-  Future<void> _centerMapOnBus() async {
-    final controller = await _mapController.future;
-    controller.animateCamera(CameraUpdate.newLatLngZoom(_busLocation, 16));
   }
 }

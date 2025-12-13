@@ -86,6 +86,12 @@
       "languageVersion": "3.9"
     },
     {
+      "name": "flutter_polyline_points",
+      "rootUri": "file:///Users/shanukhandala/.pub-cache/hosted/pub.dev/flutter_polyline_points-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "flutter_test",
       "rootUri": "file:///Users/shanukhandala/Development/flutter/packages/flutter_test",
       "packageUri": "lib/",
@@ -416,7 +422,7 @@
       "languageVersion": "3.3"
     },
     {
-      "name": "routex",
+      "name": "routex_testing",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.10"
