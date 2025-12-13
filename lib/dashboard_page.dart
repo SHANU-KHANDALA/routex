@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart'; // 1. Added Firebase Auth Import
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -16,7 +17,8 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   // --- CONFIGURATION ---
-  static const String _googleApiKey = "AIzaSyA2Uh9gd06RbRVk3sOC2UrIir5Lp1SFWgw";
+  // ---TODO: Paste your API Key here
+  static const String _googleApiKey = "PASTE_YOUR_KEY_HERE";
 
   final Completer<GoogleMapController> _mapController = Completer();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -60,7 +62,6 @@ class _DashboardPageState extends State<DashboardPage> {
   final Map<PolylineId, Polyline> _polylines = {};
 
   // Simulation State
-  // We use 'late' so we can set them based on the list in initState
   late LatLng _busLocation;
   late CameraPosition _initialCamera;
 
@@ -77,7 +78,6 @@ class _DashboardPageState extends State<DashboardPage> {
       _busLocation = _stopLocations[0];
       _initialCamera = CameraPosition(target: _stopLocations[0], zoom: 14.5);
     } else {
-      // Fallback if list is empty
       _busLocation = const LatLng(0, 0);
       _initialCamera = const CameraPosition(target: LatLng(0, 0), zoom: 1);
     }
@@ -101,9 +101,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // --- API LOGIC ---
   Future<void> _getDirections(LatLng start, LatLng dest) async {
-    if (_googleApiKey.contains("API_KEY")) {
+    if (_googleApiKey.contains("AIzaSyA2Uh9gd06RbRVk3sOC2UrIir5Lp1SFWgw")) {
       setState(() {
-        _debugStatus = "MISSING API KEY";
+        _debugStatus = "PASTE API KEY";
         _updatePolylineStraight(start, dest);
       });
       return;
@@ -255,31 +255,44 @@ class _DashboardPageState extends State<DashboardPage> {
   // --- UI BUILDERS ---
 
   Widget _buildRightProfileSidebar() {
+    // 2. Fetch User Data from Firebase
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? "User";
+    final email = user?.email ?? "No Email";
+    // Get first letter for avatar, defaulting to "U"
+    final initials = displayName.isNotEmpty
+        ? displayName[0].toUpperCase()
+        : "U";
+
     return Drawer(
       width: 280,
       child: Column(
         children: [
           UserAccountsDrawerHeader(
             decoration: const BoxDecoration(color: Color(0xFF1E3A8A)),
-            accountName: const Text(
-              "John Doe",
-              style: TextStyle(fontWeight: FontWeight.bold),
+            accountName: Text(
+              displayName, // Display actual name
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            accountEmail: const Text("driver.john@routex.com"),
-            currentAccountPicture: const CircleAvatar(
+            accountEmail: Text(email), // Display actual email
+            currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
               child: Text(
-                "JD",
-                style: TextStyle(fontSize: 20, color: Color(0xFF1E3A8A)),
+                initials,
+                style: const TextStyle(fontSize: 20, color: Color(0xFF1E3A8A)),
               ),
             ),
           ),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text("Log Out", style: TextStyle(color: Colors.red)),
-            onTap: () {
+            onTap: () async {
+              // 3. Close the drawer first
               Navigator.of(context).pop();
-              Navigator.of(context).pop();
+
+              // 4. Actual Firebase Logout
+              // The AuthGate in your main.dart will detect this and switch to Login Page
+              await FirebaseAuth.instance.signOut();
             },
           ),
         ],
