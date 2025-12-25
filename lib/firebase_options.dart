@@ -72,4 +72,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'routex-9205c.firebasestorage.app',
     iosBundleId: 'com.example.routexTesting',
   );
+
 }
